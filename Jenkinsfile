@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         AWS_REGION = 'ap-southeast-2'
-        ECR_REGISTRY = credentials('ecr-registry-url')
+        AWS_ACCOUNT_ID = "962047682202"
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         ECR_REPOSITORY = 'my-docker-repo'
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
@@ -21,7 +22,7 @@ pipeline {
                 script {
                     sh '''
                         docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} .
-                        docker tag ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
+                        docker tag ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest                        
                     '''
                 }
             }
