@@ -7,6 +7,7 @@ pipeline {
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         ECR_REPOSITORY = 'my-docker-repo'
         IMAGE_TAG = "${BUILD_NUMBER}"
+        KUBECONFIG = "/home/jenkins/.kube/config"
     }
 
     stages {
@@ -37,6 +38,48 @@ pipeline {
                         docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
                     '''
                 }
+            }
+        }
+
+        stage('Verify kubectl Connectivity') {
+            steps {
+                sh """
+                    set -e
+
+                    echo "Testing kubectl installation..."
+                    if ! kubectl version --client; then
+                        echo "ERROR: kubectl not installed in Jenkins container"
+                        exit 1
+                    fi
+
+                    echo "Testing Kubernetes API connectivity..."
+                    if ! kubectl --kubeconfig=${KUBECONFIG} version; then
+                        echo "ERROR: Cannot reach Kubernetes API server"
+                        exit 1
+                    fi
+
+                    echo "Testing node access..."
+                    if ! kubectl --kubeconfig=${KUBECONFIG} get nodes; then
+                        echo "ERROR: Jenkins cannot list nodes (RBAC or network issue)"
+                        exit 1
+                    fi
+
+                    echo "kubectl connectivity OK."
+                """
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """
+                    NEW_IMAGE=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+                    kubectl --kubeconfig=${KUBECONFIG} set image deployment/flask-app flask-app=\$NEW_IMAGE
+
+                    kubectl --kubeconfig=${KUBECONFIG} apply -f k8s/service.yaml
+
+                    kubectl --kubeconfig=${KUBECONFIG} rollout status deployment/flask-app
+                """
             }
         }
     }
