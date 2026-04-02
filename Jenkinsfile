@@ -74,10 +74,20 @@ pipeline {
                 sh """
                     NEW_IMAGE=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
-                    kubectl --kubeconfig=${KUBECONFIG} set image deployment/flask-app flask-app=\$NEW_IMAGE
+                    echo "Checking if Deployment exists..."
 
+                    if ! kubectl --kubeconfig=${KUBECONFIG} get deployment flask-app >/dev/null 2>&1; then
+                        echo "Deployment not found. Creating it now..."
+                        kubectl --kubeconfig=${KUBECONFIG} apply -f k8s/deployment.yaml
+                    else
+                        echo "Deployment exists. Updating image..."
+                        kubectl --kubeconfig=${KUBECONFIG} set image deployment/flask-app flask-app=\$NEW_IMAGE
+                    fi
+
+                    echo "Applying service (idempotent)..."
                     kubectl --kubeconfig=${KUBECONFIG} apply -f k8s/service.yaml
 
+                    echo "Waiting for rollout..."
                     kubectl --kubeconfig=${KUBECONFIG} rollout status deployment/flask-app
                 """
             }
