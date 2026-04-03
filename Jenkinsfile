@@ -68,14 +68,15 @@ pipeline {
                 """
             }
         }
-
+        /*
         stage('Deploy to Kubernetes') {
             steps {
                 sh """
                     NEW_IMAGE=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
-                    echo "Checking if Deployment exists..."
+                    echo "Using image: \$NEW_IMAGE"
 
+                    echo "Checking if Deployment exists..."
                     if ! kubectl --kubeconfig=${KUBECONFIG} get deployment flask-app >/dev/null 2>&1; then
                         echo "Deployment not found. Creating it now..."
                         kubectl --kubeconfig=${KUBECONFIG} apply -f k8s/deployment.yaml
@@ -87,8 +88,35 @@ pipeline {
                     echo "Applying service (idempotent)..."
                     kubectl --kubeconfig=${KUBECONFIG} apply -f k8s/service.yaml
 
-                    echo "Waiting for rollout..."
+                    echo "Waiting for rollout to complete..."
                     kubectl --kubeconfig=${KUBECONFIG} rollout status deployment/flask-app
+                """
+            }
+        }
+        */
+
+        stage('Deploy Base Kubernetes Resources') {
+            steps {
+                sh """
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+                """
+            }
+        }
+
+        stage('Update Image in Kubernetes') {
+            steps {
+                sh """
+                kubectl set image deployment/my-flask-app my-flask-app=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+                """
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh """
+                kubectl rollout status deployment/my-flask-app
+                kubectl get pods -o wide
                 """
             }
         }

@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: flask-app
+  name: my-flask-app-deployment
   labels:
-    app: flask-app
+    app: my-flask-app
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: flask-app
+      app: my-flask-app
   template:
     metadata:
       labels:
-        app: flask-app
+        app: my-flask-app
     spec:
       containers:
-        - name: flask-app
+        - name: my-flask-app
           image: nginx:latest   # placeholder, Jenkins overrides this
           imagePullPolicy: Always
           ports:
