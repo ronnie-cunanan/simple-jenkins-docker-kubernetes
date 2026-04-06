@@ -14,8 +14,6 @@ spec:
       labels:
         app: my-flask-app
     spec:
-      imagePullSecrets:
-        - name: ecr-secret    
       containers:
         - name: my-flask-app
           image: nginx:latest   # placeholder, Jenkins overrides this
