@@ -68,32 +68,24 @@ pipeline {
                 """
             }
         }
-        /*
-        stage('Deploy to Kubernetes') {
+
+        stage('Refresh ECR Secret') {
             steps {
                 sh """
-                    NEW_IMAGE=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
-
-                    echo "Using image: \$NEW_IMAGE"
-
-                    echo "Checking if Deployment exists..."
-                    if ! kubectl --kubeconfig=${KUBECONFIG} get deployment flask-app >/dev/null 2>&1; then
-                        echo "Deployment not found. Creating it now..."
-                        kubectl --kubeconfig=${KUBECONFIG} apply -f k8s/deployment.yaml
-                    else
-                        echo "Deployment exists. Updating image..."
-                        kubectl --kubeconfig=${KUBECONFIG} set image deployment/flask-app flask-app=\$NEW_IMAGE
-                    fi
-
-                    echo "Applying service (idempotent)..."
-                    kubectl --kubeconfig=${KUBECONFIG} apply -f k8s/service.yaml
-
-                    echo "Waiting for rollout to complete..."
-                    kubectl --kubeconfig=${KUBECONFIG} rollout status deployment/flask-app
+                # Get a fresh token and recreate the secret
+                TOKEN=\$(aws ecr get-login-password --region ap-southeast-2)
+                
+                # Delete the old secret first (to ensure a fresh one)
+                kubectl delete secret ecr-secret --ignore-not-found
+                
+                # Create the new secret
+                kubectl create secret docker-registry ecr-secret \
+                --docker-server=${ECR_REGISTRY} \
+                --docker-username=AWS \
+                --docker-password=\$TOKEN
                 """
             }
         }
-        */
 
         stage('Deploy Base Kubernetes Resources') {
             steps {
